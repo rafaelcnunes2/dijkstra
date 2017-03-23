@@ -194,6 +194,416 @@ brazil,				% o último idioma é o principal do documento
 	\setlength{\absparsep}{18pt} % ajusta o espaçamento dos parágrafos do resumo
 	\begin{resumo}
 		
+		A busca por uma maior economia e menores custos nas diversas áreas das ações humanas foi um grande ponto de partida para o surgimento da Teoria dos Grafos com o consequente Problema dos Menores Caminhos. Para a resolução desse Problema dos Menores Caminhos surgiram vários tipos de algoritmos, como por exemplo o Algoritmo de Dijkstra e Algoritmo de Floyd-Warshall.
+		
+		 Nesse trabalho será feito uma explicação sobre o que são os grafos e sobre os algoritmos utilizados nesse projeto. Após isso, esses algoritmos serão implementados no software computacional MATLAB para ser possível a comparação entre as características obtidas dos dois algoritmos. Com essa comparação será possível dizer qual dos algoritmos é mais eficiente com relação ao número de iterações e tempo de processamento e sob quais condições isso acontece.
+		
+		\noindent
+		\textbf{Palavras-chaves}: Grafos, Problema dos Menores Caminhos, Floyd-Warshall, Dijkstra, Iterações
+	\end{resumo}
+	% ---
+	
+	%lista de ilustrações
+	% ---
+	\pdfbookmark[0]{\listfigurename}{lof}
+	\listoffigures*
+	\pagebreak
+	% ---
+	
+	%lista de tabelas
+	\pdfbookmark[0]{\listtablename}{lot}
+	\listoftables*
+	\pagebreak
+	% ---
+	
+	%lista de abreviaturas e siglas
+	
+	
+	% sumario
+	\pdfbookmark[0]{\contentsname}{toc}
+	\tableofcontents*
+	\pagebreak
+	% ---
+	
+	%introdução
+	\include{Intro}
+	
+	
+	
+	\phantompart
+	%-
+	
+	%Revisão Bibliografica
+	\include{Referência}
+	\phantompart
+	%-
+	\chapter{Objetivos}
+	
+	O objetivo do trabalho foi o estudo da teoria dos grafos na resolução do problema de menor caminho. Para tal, foram implemantados os algoritmos de Dijkstra e de Floyd-Warshall com objetivo de comparar o desempenho dos mesmos na resolução do problema.
+	
+	\include{teorica}
+	\phantompart
+	\chapter{Formulação do problema}
+	
+	Os algoritmos foram implementados no software MATLAB. Seguem abaixo os códigos comentados :
+	
+	Grafos:
+	
+	\begin{lstlisting}[ basicstyle=\tiny,frame=single]
+	
+	clc 
+	clear
+	hold off
+	
+	% Define ligações
+	s = [1 1 1 2 2 3 3 4 5 5 6 7]; 
+	t = [2 4 8 3 7 4 6 5 6 8 7 8]; 
+	
+	% q = [1 1 3 3 5 5 7 7 9 9 11 11 13
+	 13 15 15 17 17 19 19 2 6 10 
+	14 18 4 8 12 16 20];
+	
+	% e = [2 3 4 5 6 7 8 9 10 11 12 13
+	 14 15 16 17 18 19 20 1 6 10 14 
+	18 2 8 12 16 20 4];
+	
+	% Pesos
+	weights = [10 10 1 10 1 10 1 1 12 12 12 12];
+	% weights = [10 10 1 10 1 10 1 1 
+	12 12 12 12 9 2 5 7 12 14 9 1 3 2
+	24 12 14 10 12 1 2 3];
+	
+	% weights = [10 10 1 10 10 10 1 10 1 10 1 1
+	 12 12 12 12 9 2 5 7 12 14 9 1 3 2 24 12 14
+	  10 12 1 2 3 1 10 1 1 10 10 1 10 1 10 1 1 
+	  12 12 12 12 9 2 5 7 12 14 9 1 3 2 24 12 
+	  14 10 12 1 2 3 12 12 12 12 9 2 5 7 12 14 
+	  9 1 3 2 24 12 14 10 12 1 2 3];
+	
+	% Nomes
+	names = {'A' 'B' 'C' 'D' 'E' 'F' 'G' 'H'};
+	
+	% Cria Grafo
+	G = graph(s,t,weights,names);
+	% G = graph(q,e,weights);
+	% G = graph(bucky);
+	
+	% Plots
+	p = plot(G,'EdgeLabel',G.Edges.Weight);
+	
+	% Menor distancia
+	tic
+	[caminho,distancia] = dijkstra(G,2,5);
+	Td = toc;
+	tic
+	[caminho2,distancia2] = floyd(G,2,5);
+	Tf = toc;
+	
+	% Plot fresco
+	pause(1);
+	duo = caminho(1);
+	for i=1:(size(caminho,2)-1)
+	duo = [duo caminho(i+1)];
+	highlight(p, duo,'EdgeColor','r')
+	pause(1);
+	end
+	
+	figure(2)
+	c = categorical({'Floyd','Dijkstra'});
+	v = [Tf Td];
+	bar(c,v)
+	
+	\end{lstlisting}
+	Dijkstra:
+	
+	\begin{lstlisting}[ basicstyle=\tiny,frame=single]
+	
+function [Caminho, Distancia] = dijkstra(G, origem, destino)
+	
+% Entrada: Grafo G
+%          Origem da busca
+%          Destino da busca
+% Saída  : Um menor Caminho
+%          A Distancia mínima
+	
+Caminho = [destino]; % inicializa o vetor caminho
+Distancia = []; % inicializa o vetor distancia
+	
+% criando a matriz dados
+dist = (inf*(1:size(G.Nodes,1))'); %distancias infinito
+preced = (0*(1:size(G.Nodes,1))'); % coluna que indica de onde veio 
+dados = [(1:size(G.Nodes,1))' dist preced]; %nó, distancia,origem
+	
+dados(origem,2) = 0; % distancia da origem a origem é zero
+P_no = origem; % proximo no recebe origem (inicializacao)
+memo = []; % memoria de Nós percorridos
+	
+while (1)
+	
+atual = P_no; % Nó atual
+memo = [memo; dados(atual,:)]; % por onde ja passei
+	
+vizinhos = neighbors(G,atual); % acha Nós vizinhos
+	
+for i=1:size(vizinhos,1) % atribuir distancias
+if (dados(vizinhos(i),2) > dados(atual,2)+distances(G,atual,vizinhos(i)));
+dados(vizinhos(i),2) = dados(atual,2)+distances(G,atual,vizinhos(i));
+dados(vizinhos(i),3) = dados(atual,1);
+end
+end
+	
+% Define o proximo Nó da busca
+vazio = dados; % cria uma matriz que pode ser alterada
+for l=1:size(memo,1)
+ind = find(vazio == memo(l,1)); % encontra elementos ja visitados
+vazio(ind(1),:) = []; % elimina elementos passados
+end
+[x,y] = min(vazio,[],1);
+%-----------------------------%
+% criterio de parada
+if (isempty(vazio))
+break
+else
+P_no = vazio(y(2),1); % escolhe proximo nó
+end
+end
+	
+% Define menor caminho
+g = destino;
+while (g ~= origem)
+o = find(memo == g);
+g = memo(o(1),3);
+Caminho = [Caminho g];
+end
+Caminho = flip(Caminho);
+	
+% Define a menor Distancia
+o = find(memo == destino);
+Distancia = memo(o(1),2);
+	
+	
+end
+	\end{lstlisting}
+	
+	Floyd-Warshall:
+	
+	\begin{lstlisting}[ basicstyle=\tiny,frame=single]
+	function [Caminho, Distancia] = floyd(G, origem, destino)
+	
+	% Entrada: Grafo G
+	%          Origem da busca
+	%          Destino da busca
+	% Saída  : Um menor Caminho
+	%          A Distancia mínima
+	
+	Distancia = []; % inicializa o vetor distancia
+	Caminho = destino; % inicializa o vetor caminho
+	
+	m = [0    10   Inf    10   Inf   Inf   Inf     1
+	10     0    10   Inf   Inf   Inf     1   Inf
+	Inf    10     0    10   Inf     1   Inf   Inf
+	10   Inf    10     0     1   Inf   Inf   Inf
+	Inf   Inf   Inf     1     0    12   Inf    12
+	Inf   Inf     1   Inf    12     0    12   Inf
+	Inf     1   Inf   Inf   Inf    12     0    12
+	1   Inf   Inf   Inf    12   Inf    12     0];
+	dis = m;
+	
+	cam = [ 1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8;
+	1 2 3 4 5 6 7 8];
+	
+	for k=1:size(m,1)
+	for i=1:size(m,1)
+	for j=1:size(m,1)
+	if (dis(i,k)+ dis(k,j) < dis(i,j))
+	cam(i,j)=k;
+	dis(i,j) = dis(i,k)+ dis(k,j);
+	end
+	end
+	end
+	end
+	
+	Distancia = dis(origem,destino);
+	
+	while(Caminho(size(Caminho,1)) ~= origem)
+	Caminho = [Caminho; cam(destino,origem)];
+	if Caminho(size(Caminho,1)) ~= origem
+	destino = Caminho(size(Caminho,1));
+	end
+	end
+	
+	Caminho = flip(Caminho');
+	
+	end
+	
+	\end{lstlisting}
+	
+	\phantompart
+	\chapter{Resultados Obtidos}
+	Como resultados, os dois códigos feitos no MATLAB funcionaram perfeitamente. Eles foram capazes de dizer a melhor rota como também o custo dessa rota. Já na comparação entre os dois desepenhos o algoritmo de Floyd-Warshall possuiu um tempo de processamento muito menor do que o tempo de processamento do Dijkstra. Essa diferença nos tempos pode ser visualizada no gráfico de barras abaixo, onde a coluna da esquerda o tempo do Dijkstra e o da direito é o tempo do Floyd-Warshall :
+	
+  Isso já era esperado porque no algoritmo de Dijkstra o número de iterações é muito superior ao do Floyd-Warhsall já que a cada vértice ele precisa analisar o caminho a ser tomado. No algoritmo de Floyd-Warshall é menor porque o número de iterações é igual apenas ao número de vértices do grafo.
+	\phantompart
+	\chapter{Conclusão}
+	\phantompart
+	
+	
+	\bibliography{biblio}
+	%\bibliographystyle{ieeetr}
+\end{document}
+\usepackage{lipsum}				% para geração de dummy text
+% ---
+
+% ---
+% Pacotes de citações
+% ---
+\usepackage[brazilian,hyperpageref]{backref}	 % Paginas com as citações na bibl
+\usepackage[alf]{abntex2cite}	% Citações padrão ABNT
+
+% --- 
+% CONFIGURAÇÕES DE PACOTES
+% --- 
+
+% ---
+% Configurações do pacote backref
+% Usado sem a opção hyperpageref de backref
+\renewcommand{\backrefpagesname}{Citado na(s) página(s):~}
+% Texto padrão antes do número das páginas
+\renewcommand{\backref}{}
+% Define os textos da citação
+\renewcommand*{\backrefalt}[4]{
+	\ifcase #1 %
+	Nenhuma citação no texto.%
+	\or
+	Citado na página #2.%
+	\else
+	Citado #1 vezes nas páginas #2.%
+	\fi}%
+% ---
+%redefine a capa
+\renewcommand{\imprimircapa}{%
+	\begin{capa}%
+		\center
+		\ABNTEXchapterfont\Large \textbf{UNIVERSIDADE FEDERAL DE SERGIPE}
+		\\
+		\vspace*{1cm}
+		{\ABNTEXchapterfont\large\imprimirautor}
+		\vfill
+		\begin{center}
+			\ABNTEXchapterfont\bfseries\LARGE\imprimirtitulo
+		\end{center}
+		\vfill
+		\large\imprimirlocal \\
+		\large\imprimirdata
+		\vspace*{1cm}
+	\end{capa}
+}
+% ---
+% Informações de dados para CAPA e FOLHA DE ROSTO
+% ---
+\titulo{Aplicação dos Algoritmos de Dijkstra e de Floyd-Warshall no software MATLAB}
+\autor{Iuri rodrigo ferreira Alves da silva\\Gregory Medeiros Melgaço Pereira\\Raul Rodrigo Silva de Andrade \\ Rafael Castro Nunes \\ Ruan Robert Bispo dos Santos \\ Vítor do Bomfim Almeida Carvalho}
+\local{São Cristóvão,SE}
+\data{\today}
+\instituicao{%
+	Universidade Federal De Sergipe
+	\par
+	Faculdade de Engenharia Eletrônica
+	\par
+	Redes e Comunicações}
+\tipotrabalho{Relatório técnico}
+% O preambulo deve conter o tipo do trabalho, o objetivo, 
+% o nome da instituição e a área de concentração 
+\preambulo{Relatório em conformidade com as normas ABNT}
+% ---
+
+% ---
+% Configurações de aparência do PDF final
+
+% alterando o aspecto da cor azul
+\definecolor{blue}{RGB}{41,5,195}
+
+% informações do PDF
+\makeatletter
+\hypersetup{
+	%pagebackref=true,
+	pdftitle={\@title}, 
+	pdfauthor={\@author},
+	pdfsubject={\imprimirpreambulo},
+	pdfcreator={LaTeX with abnTeX2},
+	pdfkeywords={abnt}{latex}{abntex}{abntex2}{relatório técnico}, 
+	colorlinks=true,       		% false: boxed links; true: colored links
+	linkcolor=blue,          	% color of internal links
+	citecolor=blue,        		% color of links to bibliography
+	filecolor=magenta,      		% color of file links
+	urlcolor=blue,
+	bookmarksdepth=4
+}
+\makeatother
+% --- 
+
+% --- 
+% Espaçamentos entre linhas e parágrafos 
+% --- 
+
+% O tamanho do parágrafo é dado por:
+\setlength{\parindent}{1.3cm}
+
+% Controle do espaçamento entre um parágrafo e outro:
+\setlength{\parskip}{0.2cm}  % tente também \onelineskip
+
+% ---
+% compila o indice
+% ---
+\makeindex
+% ---
+
+% ----
+% Início do documento
+% ----
+\begin{document}
+	\lstset{language=Matlab} 
+	% Seleciona o idioma do documento (conforme pacotes do babel)
+	%\selectlanguage{english}
+	\selectlanguage{brazil}
+	
+	% Retira espaço extra obsoleto entre as frases.
+	\frenchspacing 
+	
+	% ----------------------------------------------------------
+	% ELEMENTOS PRÉ-TEXTUAIS
+	% ----------------------------------------------------------
+	
+	% ---
+	% Capa
+	% ---
+	\imprimircapa
+	% ---
+	
+	% ---
+	% Folha de rosto
+	% (o * indica que haverá a ficha bibliográfica)
+	% ---
+	\imprimirfolhaderosto*
+	% ---
+	
+	% ---
+	% Agradecimentos
+	% ---
+	
+	% ---
+	
+	% RESUMO
+	% resumo na língua vernácula (obrigatório)
+	\setlength{\absparsep}{18pt} % ajusta o espaçamento dos parágrafos do resumo
+	\begin{resumo}
+		
 		A busca por uma maior economia e menores custos nas diversas áreas das ações humanas foi um grande ponto de partida para o surgimento da Teoria dos Grafos com o consequente Problema dos Menores Caminhos. Para a resolução desse Problema dos Menores Caminhos surgiram vários tipos de algoritmos, como por exemplo o Algoritmo de Dijkstra e Algoritmo de Floyd-Warshall. Nesse trabalho será feito uma explicação sobre o que são os grafos e sobre os algoritmos utilizados nesse projeto. Após isso, esses algoritmos serão implementados no software computacional MATLAB para ser possível a comparação entre as características obtidas dos dois algoritmos. Com essa comparação será possível dizer qual dos algoritmos é mais eficiente com relação ao número de iterações e tempo de processamento e sob quais condições isso acontece.
 		
 		\noindent
